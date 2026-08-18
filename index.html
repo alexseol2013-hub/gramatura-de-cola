@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cola/Etiqueta — Conferência de Gramatura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #141516;
+    --panel: #1e1f21;
+    --panel-2: #26282a;
+    --line: #3a3c3f;
+    --text: #f2f0ec;
+    --text-dim: #9a9c9f;
+    --accent: #ececec;
+    --ok: #6bbf6b;
+    --fail: #e2542a;
+    --mono: 'IBM Plex Mono', monospace;
+    --disp: 'Barlow Condensed', sans-serif;
+    --body: 'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--body);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:20px 16px 64px;}
+
+  header{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    padding:18px 0 16px;border-bottom:2px solid var(--accent);margin-bottom:18px;
+    flex-wrap:wrap;gap:8px;
+  }
+  header .title{font-family:var(--disp);font-weight:700;font-size:30px;letter-spacing:.5px;line-height:1;}
+  header .sub{font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;}
+
+  nav{display:flex;gap:2px;margin-bottom:20px;background:var(--panel);border:1px solid var(--line);padding:3px;border-radius:6px;}
+  nav button{
+    flex:1;padding:10px 12px;background:transparent;border:none;color:var(--text-dim);
+    font-family:var(--disp);font-size:16px;font-weight:600;letter-spacing:.5px;
+    border-radius:4px;cursor:pointer;transition:.15s;
+  }
+  nav button.active{background:var(--accent);color:#141516;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:16px;}
+  .panel h2{font-family:var(--disp);font-size:20px;margin:0 0 14px;font-weight:600;letter-spacing:.3px;color:var(--accent);}
+
+  label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px;}
+  input, select{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:10px 11px;border-radius:5px;font-family:var(--mono);font-size:15px;margin-bottom:14px;
+  }
+  input:focus, select:focus{outline:none;border-color:var(--accent);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .hint{font-size:12px;color:var(--text-dim);margin-top:-10px;margin-bottom:14px;}
+
+  button.primary{
+    width:100%;background:var(--accent);color:#141516;border:none;padding:13px;
+    font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:.5px;
+    border-radius:6px;cursor:pointer;
+  }
+  button.primary:hover{background:#ffc934;}
+  button.primary:disabled{background:var(--line);color:var(--text-dim);cursor:not-allowed;}
+
+  button.ghost{
+    background:transparent;border:1px solid var(--line);color:var(--text-dim);
+    padding:8px 12px;border-radius:5px;font-family:var(--body);font-size:13px;cursor:pointer;
+  }
+  button.ghost:hover{border-color:var(--accent);color:var(--accent);}
+  button.danger:hover{border-color:var(--text-dim);color:var(--text);}
+
+  /* GAUGE — signature element */
+  .gauge-wrap{margin-top:6px;}
+  .gauge-readout{
+    display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;
+  }
+  .gauge-readout .val{font-family:var(--mono);font-size:34px;font-weight:600;}
+  .gauge-readout .unit{font-family:var(--mono);font-size:14px;color:var(--text-dim);margin-left:4px;}
+  .gauge-track{
+    position:relative;height:34px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;
+    overflow:visible;margin-bottom:6px;
+  }
+  .gauge-band{position:absolute;top:0;bottom:0;background:rgba(107,191,107,.22);border-left:1px solid var(--ok);border-right:1px solid var(--ok);}
+  .gauge-target{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--accent);}
+  .gauge-pointer{
+    position:absolute;top:-10px;width:0;height:0;
+    border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid var(--text);
+    transform:translateX(-7px);transition:left .2s ease;
+  }
+  .gauge-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+
+  .status-badge{
+    display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:5px;
+    font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:.5px;margin-top:14px;
+  }
+  .status-badge.ok{background:rgba(107,191,107,.15);color:var(--ok);border:1px solid var(--ok);}
+  .status-badge.fail{background:rgba(226,84,42,.15);color:var(--fail);border:1px solid var(--fail);}
+  .status-badge .dot{width:10px;height:10px;border-radius:50%;background:currentColor;}
+
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;}
+  .detail-grid .item{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:10px 12px;}
+  .detail-grid .item .k{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+  .detail-grid .item .v{font-family:var(--mono);font-size:16px;}
+
+  .recipe-card{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 14px;margin-bottom:10px;
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+  }
+  .recipe-card .info .name{font-family:var(--disp);font-size:18px;font-weight:600;margin-bottom:3px;}
+  .recipe-card .info .spec{font-family:var(--mono);font-size:12px;color:var(--text-dim);}
+  .recipe-card .actions{display:flex;gap:6px;flex-shrink:0;}
+
+  .empty{text-align:center;padding:30px 10px;color:var(--text-dim);font-size:14px;}
+  .empty .big{font-family:var(--disp);font-size:22px;color:var(--text);margin-bottom:6px;}
+
+  footer{text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:24px;}
+
+  @media (max-width:420px){
+    header .title{font-size:24px;}
+    .gauge-readout .val{font-size:28px;}
+    .row2{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="title">Haco etiquetas</div>
+      <div class="sub">Conferente de gramatura de cola</div>
+    </div>
+  </header>
+
+  <nav>
+    <button id="tabCheck" class="active" onclick="switchTab('check')">Conferir</button>
+    <button id="tabRecipes" onclick="switchTab('recipes')">Receitas</button>
+  </nav>
+
+  <!-- ===== CONFERIR ===== -->
+  <div id="view-check">
+    <div class="panel">
+      <h2>Dados da conferência</h2>
+      <label for="recipeSelect">Receita (tipo de etiqueta)</label>
+      <select id="recipeSelect" onchange="onRecipeChange()"></select>
+
+      <div class="row2">
+        <div>
+          <label for="qtd">Etiquetas na amostra</label>
+          <input type="number" id="qtd" value="1" min="1" step="1" oninput="calcular()">
+        </div>
+        <div>
+          <label for="pesoSemColaInput">Peso sem cola — amostra (g)</label>
+          <input type="number" id="pesoSemColaInput" step="0.001" placeholder="0.000" oninput="calcular()">
+        </div>
+      </div>
+      <div class="hint" id="pesoSemColaHint">Preenchido automaticamente pela receita — pode ajustar se pesou agora.</div>
+
+      <label for="pesoComCola">Peso com cola — amostra (g)</label>
+      <input type="number" id="pesoComCola" step="0.001" placeholder="0.000" oninput="calcular()">
+      <div class="hint">Se pesar mais de uma etiqueta junto, informe a quantidade acima — o resultado é dividido automaticamente.</div>
+    </div>
+
+    <div class="panel" id="resultPanel" style="display:none;">
+      <h2>Resultado</h2>
+      <div class="gauge-wrap">
+        <div class="gauge-readout">
+          <div><span class="val" id="resVal">--</span><span class="unit">g/m²</span></div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);">alvo <span id="resTarget">--</span> ± <span id="resTol">--</span></div>
+        </div>
+        <div class="gauge-track" id="gaugeTrack">
+          <div class="gauge-band" id="gaugeBand"></div>
+          <div class="gauge-target" id="gaugeTargetLine"></div>
+          <div class="gauge-pointer" id="gaugePointer"></div>
+        </div>
+        <div class="gauge-scale">
+          <span id="scaleMin">--</span>
+          <span id="scaleMax">--</span>
+        </div>
+      </div>
+
+      <div id="statusBadge"></div>
+
+      <div class="detail-grid">
+        <div class="item"><div class="k">Diferença do alvo</div><div class="v" id="detDiff">--</div></div>
+        <div class="item"><div class="k">Faixa aceitável</div><div class="v" id="detFaixa">--</div></div>
+      </div>
+    </div>
+
+    <div class="panel" id="noRecipeMsg">
+      <div class="empty">
+        <div class="big">Nenhuma receita cadastrada</div>
+        Vá em <strong>Receitas</strong> e cadastre o primeiro tamanho de etiqueta.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RECEITAS ===== -->
+  <div id="view-recipes" style="display:none;">
+    <div class="panel">
+      <h2 id="formTitle">Nova receita</h2>
+      <input type="hidden" id="editId">
+      <label for="rNome">Nome da etiqueta</label>
+      <input type="text" id="rNome" placeholder="Ex: Etiqueta 73x19">
+
+      <div class="row2">
+        <div>
+          <label for="rLargura">Largura (mm)</label>
+          <input type="number" id="rLargura" step="0.1" placeholder="73">
+        </div>
+        <div>
+          <label for="rComprimento">Comprimento (mm)</label>
+          <input type="number" id="rComprimento" step="0.1" placeholder="19">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div>
+          <label for="rGramaturaAlvo">Gramatura alvo (g/m²)</label>
+          <input type="number" id="rGramaturaAlvo" step="0.1" placeholder="23">
+        </div>
+        <div>
+          <label for="rVariacao">Variação aceitável (g/m²)</label>
+          <input type="number" id="rVariacao" step="0.1" placeholder="3">
+        </div>
+      </div>
+
+      <label for="rPesoSemCola">Peso padrão sem cola (g) — 1 etiqueta</label>
+      <input type="number" id="rPesoSemCola" step="0.001" placeholder="0.000">
+      <div class="hint">Usado para pré-preencher a conferência. Multiplicado pela quantidade da amostra.</div>
+
+      <div style="display:flex;gap:10px;">
+        <button class="primary" onclick="saveRecipe()" style="flex:1;">Salvar receita</button>
+        <button class="ghost" onclick="cancelEdit()" id="cancelBtn" style="display:none;">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Receitas cadastradas</h2>
+      <div id="recipeList"></div>
+    </div>
+  </div>
+
+  <footer>dados salvos localmente neste navegador</footer>
+</div>
+
+<script>
+const STORAGE_KEY = 'etiquetas_cola_receitas_v1';
+
+function loadRecipes(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch(e){ return []; }
+}
+function saveRecipes(list){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+function switchTab(tab){
+  document.getElementById('view-check').style.display = tab==='check' ? 'block' : 'none';
+  document.getElementById('view-recipes').style.display = tab==='recipes' ? 'block' : 'none';
+  document.getElementById('tabCheck').classList.toggle('active', tab==='check');
+  document.getElementById('tabRecipes').classList.toggle('active', tab==='recipes');
+  if(tab==='check'){ populateSelect(); }
+  if(tab==='recipes'){ renderRecipeList(); }
+}
+
+function populateSelect(){
+  const list = loadRecipes();
+  const sel = document.getElementById('recipeSelect');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  if(list.length===0){
+    document.getElementById('noRecipeMsg').style.display='block';
+    document.getElementById('resultPanel').style.display='none';
+    document.querySelector('#view-check .panel').style.display='none';
+    return;
+  }
+  document.getElementById('noRecipeMsg').style.display='none';
+  document.querySelector('#view-check .panel').style.display='block';
+  list.forEach(r=>{
+    const opt = document.createElement('option');
+    opt.value = r.id;
+    opt.textContent = r.nome + ' — ' + r.largura + '×' + r.comprimento + 'mm';
+    sel.appendChild(opt);
+  });
+  if(prev && list.find(r=>r.id===prev)) sel.value = prev;
+  onRecipeChange();
+}
+
+function currentRecipe(){
+  const id = document.getElementById('recipeSelect').value;
+  return loadRecipes().find(r=>r.id===id);
+}
+
+function onRecipeChange(){
+  const r = currentRecipe();
+  if(!r) return;
+  const qtd = parseFloat(document.getElementById('qtd').value) || 1;
+  document.getElementById('pesoSemColaInput').value = (r.pesoSemCola * qtd).toFixed(3);
+  calcular();
+}
+
+function calcular(){
+  const r = currentRecipe();
+  const resultPanel = document.getElementById('resultPanel');
+  if(!r){ resultPanel.style.display='none'; return; }
+
+  const qtd = parseFloat(document.getElementById('qtd').value);
+  const pesoSem = parseFloat(document.getElementById('pesoSemColaInput').value);
+  const pesoCom = parseFloat(document.getElementById('pesoComCola').value);
+
+  if(!qtd || qtd<=0 || isNaN(pesoSem) || isNaN(pesoCom)){
+    resultPanel.style.display='none';
+    return;
+  }
+
+  const areaM2 = (r.largura/1000) * (r.comprimento/1000);
+  const colaTotal = pesoCom - pesoSem;
+  const colaPorEtiqueta = colaTotal / qtd;
+  const gramaturaReal = colaPorEtiqueta / areaM2;
+  const alvo = r.gramaturaAlvo;
+  const tol = r.variacao;
+  const min = alvo - tol;
+  const max = alvo + tol;
+  const diff = gramaturaReal - alvo;
+  const dentro = gramaturaReal >= min && gramaturaReal <= max;
+
+  resultPanel.style.display='block';
+  document.getElementById('resVal').textContent = gramaturaReal.toFixed(2);
+  document.getElementById('resTarget').textContent = alvo.toFixed(1);
+  document.getElementById('resTol').textContent = tol.toFixed(1);
+  document.getElementById('detDiff').textContent = (diff>=0?'+':'') + diff.toFixed(2) + ' g/m²';
+  document.getElementById('detFaixa').textContent = min.toFixed(1) + ' – ' + max.toFixed(1) + ' g/m²';
+
+  const badge = document.getElementById('statusBadge');
+  if(dentro){
+    badge.innerHTML = '<div class="status-badge ok"><span class="dot"></span>DENTRO DA FAIXA</div>';
+  } else {
+    badge.innerHTML = '<div class="status-badge fail"><span class="dot"></span>FORA DA FAIXA — ' + (diff>0?'excesso de cola':'falta de cola') + '</div>';
+  }
+
+  // gauge: scale spans a margin beyond [min,max] to show pointer even if out of range
+  const span = tol * 2.5;
+  const scaleMin = alvo - span;
+  const scaleMax = alvo + span;
+  const clampPct = v => Math.max(0, Math.min(100, ((v-scaleMin)/(scaleMax-scaleMin))*100));
+
+  document.getElementById('gaugeBand').style.left = clampPct(min) + '%';
+  document.getElementById('gaugeBand').style.width = (clampPct(max)-clampPct(min)) + '%';
+  document.getElementById('gaugeTargetLine').style.left = clampPct(alvo) + '%';
+  document.getElementById('gaugePointer').style.left = clampPct(gramaturaReal) + '%';
+  document.getElementById('gaugePointer').style.borderTopColor = dentro ? '#6bbf6b' : '#e2542a';
+  document.getElementById('scaleMin').textContent = scaleMin.toFixed(1);
+  document.getElementById('scaleMax').textContent = scaleMax.toFixed(1);
+}
+
+function saveRecipe(){
+  const nome = document.getElementById('rNome').value.trim();
+  const largura = parseFloat(document.getElementById('rLargura').value);
+  const comprimento = parseFloat(document.getElementById('rComprimento').value);
+  const gramaturaAlvo = parseFloat(document.getElementById('rGramaturaAlvo').value);
+  const variacao = parseFloat(document.getElementById('rVariacao').value);
+  const pesoSemCola = parseFloat(document.getElementById('rPesoSemCola').value);
+
+  if(!nome || !largura || !comprimento || isNaN(gramaturaAlvo) || isNaN(variacao) || isNaN(pesoSemCola)){
+    alert('Preencha todos os campos da receita.');
+    return;
+  }
+
+  const list = loadRecipes();
+  const editId = document.getElementById('editId').value;
+
+  if(editId){
+    const idx = list.findIndex(r=>r.id===editId);
+    if(idx>-1) list[idx] = {...list[idx], nome, largura, comprimento, gramaturaAlvo, variacao, pesoSemCola};
+  } else {
+    list.push({
+      id: 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+      nome, largura, comprimento, gramaturaAlvo, variacao, pesoSemCola
+    });
+  }
+
+  saveRecipes(list);
+  cancelEdit();
+  renderRecipeList();
+}
+
+function editRecipe(id){
+  const r = loadRecipes().find(r=>r.id===id);
+  if(!r) return;
+  document.getElementById('editId').value = r.id;
+  document.getElementById('rNome').value = r.nome;
+  document.getElementById('rLargura').value = r.largura;
+  document.getElementById('rComprimento').value = r.comprimento;
+  document.getElementById('rGramaturaAlvo').value = r.gramaturaAlvo;
+  document.getElementById('rVariacao').value = r.variacao;
+  document.getElementById('rPesoSemCola').value = r.pesoSemCola;
+  document.getElementById('formTitle').textContent = 'Editar receita';
+  document.getElementById('cancelBtn').style.display = 'inline-block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function cancelEdit(){
+  document.getElementById('editId').value = '';
+  ['rNome','rLargura','rComprimento','rGramaturaAlvo','rVariacao','rPesoSemCola'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('formTitle').textContent = 'Nova receita';
+  document.getElementById('cancelBtn').style.display = 'none';
+}
+
+function deleteRecipe(id){
+  const r = loadRecipes().find(r=>r.id===id);
+  if(!r) return;
+  if(!confirm('Excluir a receita "' + r.nome + '"?')) return;
+  const list = loadRecipes().filter(r=>r.id!==id);
+  saveRecipes(list);
+  renderRecipeList();
+}
+
+function renderRecipeList(){
+  const list = loadRecipes();
+  const container = document.getElementById('recipeList');
+  if(list.length===0){
+    container.innerHTML = '<div class="empty">Nenhuma receita cadastrada ainda.</div>';
+    return;
+  }
+  container.innerHTML = list.map(r => `
+    <div class="recipe-card">
+      <div class="info">
+        <div class="name">${r.nome}</div>
+        <div class="spec">${r.largura}×${r.comprimento}mm · alvo ${r.gramaturaAlvo}±${r.variacao}g/m² · sem cola ${r.pesoSemCola}g</div>
+      </div>
+      <div class="actions">
+        <button class="ghost" onclick="editRecipe('${r.id}')">Editar</button>
+        <button class="ghost danger" onclick="deleteRecipe('${r.id}')">Excluir</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// init
+populateSelect();
+</script>
+</body>
+</html>
