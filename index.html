@@ -56,6 +56,7 @@
     padding:10px 11px;border-radius:5px;font-family:var(--mono);font-size:15px;margin-bottom:14px;
   }
   input:focus, select:focus{outline:none;border-color:var(--accent);}
+  input.locked{background:#1a1c1e;color:var(--text-dim);cursor:not-allowed;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .hint{font-size:12px;color:var(--text-dim);margin-top:-10px;margin-bottom:14px;}
 
@@ -151,14 +152,14 @@
       <div class="row2">
         <div>
           <label for="qtd">Etiquetas na amostra</label>
-          <input type="number" id="qtd" value="1" min="1" step="1" oninput="calcular()">
+          <input type="number" id="qtd" value="1" min="1" step="1" oninput="onQtdChange()">
         </div>
         <div>
-          <label for="pesoSemColaInput">Peso sem cola — amostra (g)</label>
-          <input type="number" id="pesoSemColaInput" step="0.001" placeholder="0.000" oninput="calcular()">
+          <label for="pesoSemColaInput">Peso sem cola — amostra (g) 🔒</label>
+          <input type="number" id="pesoSemColaInput" step="0.001" placeholder="0.000" disabled class="locked">
         </div>
       </div>
-      <div class="hint" id="pesoSemColaHint">Preenchido automaticamente pela receita — pode ajustar se pesou agora.</div>
+      <div class="hint" id="pesoSemColaHint">Travado — vem da receita automaticamente, conforme a quantidade acima.</div>
 
       <label for="pesoComCola">Peso com cola — amostra (g)</label>
       <input type="number" id="pesoComCola" step="0.001" placeholder="0.000" oninput="calcular()">
@@ -229,9 +230,13 @@
         </div>
       </div>
 
-      <label for="rPesoSemCola">Peso padrão sem cola (g) — 1 etiqueta</label>
+      <label for="rQtdPadrao">Quantidade padrão para pesagem (etiquetas)</label>
+      <input type="number" id="rQtdPadrao" step="1" min="1" value="1" placeholder="1">
+      <div class="hint">Para etiqueta muito pequena/leve, pese várias juntas pra balança conseguir ler direito. Ex: 10.</div>
+
+      <label for="rPesoSemCola">Peso sem cola dessa quantidade (g)</label>
       <input type="number" id="rPesoSemCola" step="0.001" placeholder="0.000">
-      <div class="hint">Usado para pré-preencher a conferência. Multiplicado pela quantidade da amostra.</div>
+      <div class="hint">Peso total das etiquetas da quantidade acima, sem cola nenhuma.</div>
 
       <div style="display:flex;gap:10px;">
         <button class="primary" onclick="saveRecipe()" style="flex:1;">Salvar receita</button>
@@ -259,7 +264,19 @@ function saveRecipes(list){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 }
 
+const RECIPES_PASSWORD = '20051990nasci';
+let recipesUnlocked = false;
+
 function switchTab(tab){
+  if(tab==='recipes' && !recipesUnlocked){
+    const senha = window.prompt('Senha para acessar as receitas:');
+    if(senha === null){ return; }
+    if(senha !== RECIPES_PASSWORD){
+      alert('Senha incorreta.');
+      return;
+    }
+    recipesUnlocked = true;
+  }
   document.getElementById('view-check').style.display = tab==='check' ? 'block' : 'none';
   document.getElementById('view-recipes').style.display = tab==='recipes' ? 'block' : 'none';
   document.getElementById('tabCheck').classList.toggle('active', tab==='check');
@@ -299,9 +316,22 @@ function currentRecipe(){
 function onRecipeChange(){
   const r = currentRecipe();
   if(!r) return;
-  const qtd = parseFloat(document.getElementById('qtd').value) || 1;
-  document.getElementById('pesoSemColaInput').value = (r.pesoSemCola * qtd).toFixed(3);
+  document.getElementById('qtd').value = r.qtdPadrao || 1;
+  updatePesoSemCola();
+}
+
+function updatePesoSemCola(){
+  const r = currentRecipe();
+  if(!r) return;
+  const qtdPadrao = r.qtdPadrao || 1;
+  const pesoUnitario = r.pesoSemCola / qtdPadrao;
+  const qtd = parseFloat(document.getElementById('qtd').value) || 0;
+  document.getElementById('pesoSemColaInput').value = (pesoUnitario * qtd).toFixed(3);
   calcular();
+}
+
+function onQtdChange(){
+  updatePesoSemCola();
 }
 
 function calcular(){
@@ -364,6 +394,7 @@ function saveRecipe(){
   const comprimento = parseFloat(document.getElementById('rComprimento').value);
   const gramaturaAlvo = parseFloat(document.getElementById('rGramaturaAlvo').value);
   const variacao = parseFloat(document.getElementById('rVariacao').value);
+  const qtdPadrao = parseInt(document.getElementById('rQtdPadrao').value) || 1;
   const pesoSemCola = parseFloat(document.getElementById('rPesoSemCola').value);
 
   if(!nome || !largura || !comprimento || isNaN(gramaturaAlvo) || isNaN(variacao) || isNaN(pesoSemCola)){
@@ -376,11 +407,11 @@ function saveRecipe(){
 
   if(editId){
     const idx = list.findIndex(r=>r.id===editId);
-    if(idx>-1) list[idx] = {...list[idx], nome, largura, comprimento, gramaturaAlvo, variacao, pesoSemCola};
+    if(idx>-1) list[idx] = {...list[idx], nome, largura, comprimento, gramaturaAlvo, variacao, qtdPadrao, pesoSemCola};
   } else {
     list.push({
       id: 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
-      nome, largura, comprimento, gramaturaAlvo, variacao, pesoSemCola
+      nome, largura, comprimento, gramaturaAlvo, variacao, qtdPadrao, pesoSemCola
     });
   }
 
@@ -398,6 +429,7 @@ function editRecipe(id){
   document.getElementById('rComprimento').value = r.comprimento;
   document.getElementById('rGramaturaAlvo').value = r.gramaturaAlvo;
   document.getElementById('rVariacao').value = r.variacao;
+  document.getElementById('rQtdPadrao').value = r.qtdPadrao || 1;
   document.getElementById('rPesoSemCola').value = r.pesoSemCola;
   document.getElementById('formTitle').textContent = 'Editar receita';
   document.getElementById('cancelBtn').style.display = 'inline-block';
@@ -406,7 +438,7 @@ function editRecipe(id){
 
 function cancelEdit(){
   document.getElementById('editId').value = '';
-  ['rNome','rLargura','rComprimento','rGramaturaAlvo','rVariacao','rPesoSemCola'].forEach(id=>document.getElementById(id).value='');
+  ['rNome','rLargura','rComprimento','rGramaturaAlvo','rVariacao','rQtdPadrao','rPesoSemCola'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('formTitle').textContent = 'Nova receita';
   document.getElementById('cancelBtn').style.display = 'none';
 }
@@ -431,7 +463,7 @@ function renderRecipeList(){
     <div class="recipe-card">
       <div class="info">
         <div class="name">${r.nome}</div>
-        <div class="spec">${r.largura}×${r.comprimento}mm · alvo ${r.gramaturaAlvo}±${r.variacao}g/m² · sem cola ${r.pesoSemCola}g</div>
+        <div class="spec">${r.largura}×${r.comprimento}mm · alvo ${r.gramaturaAlvo}±${r.variacao}g/m² · sem cola ${r.pesoSemCola}g (${r.qtdPadrao||1} un)</div>
       </div>
       <div class="actions">
         <button class="ghost" onclick="editRecipe('${r.id}')">Editar</button>
