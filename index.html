@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cola/Etiqueta — Conferência de Gramatura</title>
+<meta name="theme-color" content="#141516">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Haco Etiquetas">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./icon-192.png">
+<title>Haco Etiquetas — Conferente de Gramatura de Cola</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -41,14 +49,15 @@
 
   nav{display:flex;gap:2px;margin-bottom:20px;background:var(--panel);border:1px solid var(--line);padding:3px;border-radius:6px;}
   nav button{
-    flex:1;padding:10px 12px;background:transparent;border:none;color:var(--text-dim);
-    font-family:var(--disp);font-size:16px;font-weight:600;letter-spacing:.5px;
+    flex:1;padding:10px 8px;background:transparent;border:none;color:var(--text-dim);
+    font-family:var(--disp);font-size:15px;font-weight:600;letter-spacing:.3px;
     border-radius:4px;cursor:pointer;transition:.15s;
   }
   nav button.active{background:var(--accent);color:#141516;}
 
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:16px;}
   .panel h2{font-family:var(--disp);font-size:20px;margin:0 0 14px;font-weight:600;letter-spacing:.3px;color:var(--accent);}
+  .subheading{font-family:var(--disp);font-size:15px;font-weight:600;color:var(--text-dim);margin:16px 0 8px;}
 
   label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px;}
   input, select{
@@ -65,7 +74,7 @@
     font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:.5px;
     border-radius:6px;cursor:pointer;
   }
-  button.primary:hover{background:#ffc934;}
+  button.primary:hover{background:#ffffff;}
   button.primary:disabled{background:var(--line);color:var(--text-dim);cursor:not-allowed;}
 
   button.ghost{
@@ -73,48 +82,53 @@
     padding:8px 12px;border-radius:5px;font-family:var(--body);font-size:13px;cursor:pointer;
   }
   button.ghost:hover{border-color:var(--accent);color:var(--accent);}
-  button.danger:hover{border-color:var(--text-dim);color:var(--text);}
+  button.danger:hover{border-color:var(--fail);color:var(--fail);}
 
-  /* GAUGE — signature element */
+  .segmented{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-bottom:14px;}
+  .seg-btn{flex:1;padding:9px;background:var(--panel-2);border:none;border-right:1px solid var(--line);
+    color:var(--text-dim);font-family:var(--body);font-size:13px;font-weight:600;cursor:pointer;}
+  .seg-btn:last-child{border-right:none;}
+  .seg-btn.active{background:var(--accent);color:#141516;}
+
+  /* GAUGE */
   .gauge-wrap{margin-top:6px;}
-  .gauge-readout{
-    display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;
-  }
+  .gauge-readout{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:4px;}
   .gauge-readout .val{font-family:var(--mono);font-size:34px;font-weight:600;}
   .gauge-readout .unit{font-family:var(--mono);font-size:14px;color:var(--text-dim);margin-left:4px;}
-  .gauge-track{
-    position:relative;height:34px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;
-    overflow:visible;margin-bottom:6px;
-  }
+  .gauge-track{position:relative;height:34px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;overflow:visible;margin-bottom:6px;}
   .gauge-band{position:absolute;top:0;bottom:0;background:rgba(107,191,107,.22);border-left:1px solid var(--ok);border-right:1px solid var(--ok);}
   .gauge-target{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--accent);}
-  .gauge-pointer{
-    position:absolute;top:-10px;width:0;height:0;
-    border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid var(--text);
-    transform:translateX(-7px);transition:left .2s ease;
-  }
+  .gauge-pointer{position:absolute;top:-10px;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid var(--text);transform:translateX(-7px);transition:left .2s ease;}
   .gauge-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text-dim);}
 
-  .status-badge{
-    display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:5px;
-    font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:.5px;margin-top:14px;
-  }
+  .status-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:5px;font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:.5px;margin-top:14px;}
   .status-badge.ok{background:rgba(107,191,107,.15);color:var(--ok);border:1px solid var(--ok);}
   .status-badge.fail{background:rgba(226,84,42,.15);color:var(--fail);border:1px solid var(--fail);}
   .status-badge .dot{width:10px;height:10px;border-radius:50%;background:currentColor;}
+
+  .action-plan{background:var(--panel-2);border:1px solid var(--fail);border-radius:6px;padding:12px 14px;margin-top:14px;}
+  .action-plan .ap-title{font-family:var(--disp);font-size:16px;font-weight:600;margin-bottom:8px;color:var(--fail);}
+  .action-plan label{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);margin-bottom:7px;text-transform:none;cursor:pointer;letter-spacing:0;}
+  .action-plan input[type=checkbox]{width:auto;margin:2px 0 0;accent-color:var(--fail);flex-shrink:0;}
 
   .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;}
   .detail-grid .item{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:10px 12px;}
   .detail-grid .item .k{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
   .detail-grid .item .v{font-family:var(--mono);font-size:16px;}
 
-  .recipe-card{
-    background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 14px;margin-bottom:10px;
-    display:flex;justify-content:space-between;align-items:center;gap:10px;
-  }
+  .recipe-card{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:13px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
   .recipe-card .info .name{font-family:var(--disp);font-size:18px;font-weight:600;margin-bottom:3px;}
   .recipe-card .info .spec{font-family:var(--mono);font-size:12px;color:var(--text-dim);}
   .recipe-card .actions{display:flex;gap:6px;flex-shrink:0;}
+
+  .hist-card{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:10px;}
+  .hist-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;}
+  .hist-status{font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:3px;letter-spacing:.5px;}
+  .hist-status.ok{background:rgba(107,191,107,.15);color:var(--ok);border:1px solid var(--ok);}
+  .hist-status.fora{background:rgba(226,84,42,.15);color:var(--fail);border:1px solid var(--fail);}
+  .hist-date{font-family:var(--mono);font-size:11px;color:var(--text-dim);}
+  .hist-main{font-family:var(--disp);font-size:17px;font-weight:600;margin-bottom:3px;}
+  .hist-sub{font-family:var(--mono);font-size:11px;color:var(--text-dim);}
 
   .empty{text-align:center;padding:30px 10px;color:var(--text-dim);font-size:14px;}
   .empty .big{font-family:var(--disp);font-size:22px;color:var(--text);margin-bottom:6px;}
@@ -125,6 +139,7 @@
     header .title{font-size:24px;}
     .gauge-readout .val{font-size:28px;}
     .row2{grid-template-columns:1fr;}
+    .detail-grid{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -140,14 +155,43 @@
   <nav>
     <button id="tabCheck" class="active" onclick="switchTab('check')">Conferir</button>
     <button id="tabRecipes" onclick="switchTab('recipes')">Receitas</button>
+    <button id="tabHistorico" onclick="switchTab('historico')">Histórico</button>
   </nav>
 
   <!-- ===== CONFERIR ===== -->
   <div id="view-check">
     <div class="panel">
+      <h2>Registro</h2>
+      <div class="row2">
+        <div>
+          <label for="operador">Operador</label>
+          <input type="text" id="operador" placeholder="Nome" oninput="calcular()">
+        </div>
+        <div>
+          <label for="turno">Turno</label>
+          <select id="turno" onchange="calcular()">
+            <option value="1º Turno">1º Turno</option>
+            <option value="2º Turno">2º Turno</option>
+            <option value="3º Turno">3º Turno</option>
+          </select>
+        </div>
+      </div>
+      <label for="opLote">OP / Lote</label>
+      <input type="text" id="opLote" placeholder="Número da OP ou lote" oninput="calcular()">
+    </div>
+
+    <div class="panel">
       <h2>Dados da conferência</h2>
       <label for="recipeSelect">Receita (tipo de etiqueta)</label>
       <select id="recipeSelect" onchange="onRecipeChange()"></select>
+
+      <div id="inlayToggleWrap" style="display:none;">
+        <label>Tara</label>
+        <div class="segmented">
+          <button type="button" class="seg-btn active" id="btnSemInlay" onclick="setInlayMode('sem')">Sem Inlay</button>
+          <button type="button" class="seg-btn" id="btnComInlay" onclick="setInlayMode('com')">Com Inlay</button>
+        </div>
+      </div>
 
       <div class="row2">
         <div>
@@ -159,7 +203,7 @@
           <input type="number" id="pesoSemColaInput" step="0.001" placeholder="0.000" disabled class="locked">
         </div>
       </div>
-      <div class="hint" id="pesoSemColaHint">Travado — vem da receita automaticamente, conforme a quantidade acima.</div>
+      <div class="hint">Travado — vem da receita automaticamente, conforme a quantidade e a tara selecionada.</div>
 
       <label for="pesoComCola">Peso com cola — amostra (g)</label>
       <input type="number" id="pesoComCola" step="0.001" placeholder="0.000" oninput="calcular()">
@@ -185,11 +229,20 @@
       </div>
 
       <div id="statusBadge"></div>
+      <div id="actionPlan" style="display:none;"></div>
 
       <div class="detail-grid">
         <div class="item"><div class="k">Diferença do alvo</div><div class="v" id="detDiff">--</div></div>
         <div class="item"><div class="k">Faixa aceitável</div><div class="v" id="detFaixa">--</div></div>
       </div>
+
+      <div id="trendWrap" style="display:none;">
+        <div class="subheading">Tendência — últimas leituras desta receita</div>
+        <div id="trendChart"></div>
+      </div>
+
+      <button class="primary" id="saveBtn" onclick="salvarConferencia()" style="margin-top:16px;">Salvar conferência</button>
+      <div class="hint" id="saveMsg" style="display:none;margin-top:10px;"></div>
     </div>
 
     <div class="panel" id="noRecipeMsg">
@@ -234,9 +287,13 @@
       <input type="number" id="rQtdPadrao" step="1" min="1" value="1" placeholder="1">
       <div class="hint">Para etiqueta muito pequena/leve, pese várias juntas pra balança conseguir ler direito. Ex: 10.</div>
 
-      <label for="rPesoSemCola">Peso sem cola dessa quantidade (g)</label>
+      <label for="rPesoSemCola">Peso sem cola — Sem Inlay (g)</label>
       <input type="number" id="rPesoSemCola" step="0.001" placeholder="0.000">
       <div class="hint">Peso total das etiquetas da quantidade acima, sem cola nenhuma.</div>
+
+      <label for="rPesoSemColaComInlay">Peso sem cola — Com Inlay (g) — opcional</label>
+      <input type="number" id="rPesoSemColaComInlay" step="0.001" placeholder="deixe em branco se não houver inlay">
+      <div class="hint">Preencha só se essa etiqueta também tiver uma versão com inlay (chip RFID). Mesma quantidade acima.</div>
 
       <div style="display:flex;gap:10px;">
         <button class="primary" onclick="saveRecipe()" style="flex:1;">Salvar receita</button>
@@ -248,43 +305,90 @@
       <h2>Receitas cadastradas</h2>
       <div id="recipeList"></div>
     </div>
+
+    <div class="panel">
+      <h2>Backup e transferência entre aparelhos</h2>
+      <div class="hint" style="margin-top:0;">Gera um arquivo com todas as receitas e o histórico deste aparelho. Envie por WhatsApp, e-mail ou drive e importe no outro celular.</div>
+      <button class="primary" onclick="exportarBackup()" style="margin-bottom:12px;">Exportar backup (.json)</button>
+      <label for="importFile">Importar backup (.json)</label>
+      <input type="file" id="importFile" accept="application/json,.json" onchange="importarBackupFile(event)">
+      <div class="hint">A importação soma com o que já existe neste aparelho — não apaga nada. Receitas com o mesmo ID são atualizadas; o histórico nunca duplica.</div>
+    </div>
   </div>
 
-  <footer>dados salvos localmente neste navegador</footer>
+  <!-- ===== HISTÓRICO ===== -->
+  <div id="view-historico" style="display:none;">
+    <div class="panel">
+      <h2>Histórico de conferências</h2>
+      <div style="display:flex;gap:10px;margin-bottom:14px;">
+        <button class="ghost" onclick="exportarCSV()" style="flex:1;">Exportar CSV</button>
+        <button class="ghost danger" onclick="limparHistorico()" style="flex:1;">Limpar histórico</button>
+      </div>
+      <div id="historicoList"></div>
+    </div>
+  </div>
+
+  <footer>dados salvos localmente neste dispositivo</footer>
 </div>
 
 <script>
 const STORAGE_KEY = 'etiquetas_cola_receitas_v1';
+const HISTORY_KEY = 'etiquetas_cola_historico_v1';
+const CTX_KEY = 'etiquetas_cola_ultimo_contexto_v1';
+const RECIPES_PASSWORD = '20051990nasci';
 
+let recipesUnlocked = false;
+let currentInlayMode = 'sem';
+
+/* ---------- storage helpers ---------- */
 function loadRecipes(){
   try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
   catch(e){ return []; }
 }
-function saveRecipes(list){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+function saveRecipes(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+
+function loadHistory(){
+  try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch(e){ return []; }
+}
+function saveHistory(list){ localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); }
+
+function loadLastCtx(){
+  try{ return JSON.parse(localStorage.getItem(CTX_KEY)) || {}; }
+  catch(e){ return {}; }
+}
+function saveLastCtx(ctx){ localStorage.setItem(CTX_KEY, JSON.stringify(ctx)); }
+
+/* ---------- password gate ---------- */
+function requirePassword(actionFn){
+  if(recipesUnlocked){ actionFn(); return; }
+  const senha = window.prompt('Senha necessária:');
+  if(senha === null) return;
+  if(senha === RECIPES_PASSWORD){ recipesUnlocked = true; actionFn(); }
+  else alert('Senha incorreta.');
 }
 
-const RECIPES_PASSWORD = '20051990nasci';
-let recipesUnlocked = false;
-
+/* ---------- tabs ---------- */
 function switchTab(tab){
-  if(tab==='recipes' && !recipesUnlocked){
-    const senha = window.prompt('Senha para acessar as receitas:');
-    if(senha === null){ return; }
-    if(senha !== RECIPES_PASSWORD){
-      alert('Senha incorreta.');
-      return;
-    }
-    recipesUnlocked = true;
+  if(tab === 'recipes' && !recipesUnlocked){
+    requirePassword(()=>{ doSwitch('recipes'); });
+    return;
   }
-  document.getElementById('view-check').style.display = tab==='check' ? 'block' : 'none';
-  document.getElementById('view-recipes').style.display = tab==='recipes' ? 'block' : 'none';
+  doSwitch(tab);
+}
+function doSwitch(tab){
+  ['check','recipes','historico'].forEach(t=>{
+    document.getElementById('view-'+t).style.display = (t===tab) ? 'block' : 'none';
+  });
   document.getElementById('tabCheck').classList.toggle('active', tab==='check');
   document.getElementById('tabRecipes').classList.toggle('active', tab==='recipes');
+  document.getElementById('tabHistorico').classList.toggle('active', tab==='historico');
   if(tab==='check'){ populateSelect(); }
   if(tab==='recipes'){ renderRecipeList(); }
+  if(tab==='historico'){ renderHistorico(); }
 }
 
+/* ---------- conferir: recipe select ---------- */
 function populateSelect(){
   const list = loadRecipes();
   const sel = document.getElementById('recipeSelect');
@@ -293,11 +397,12 @@ function populateSelect(){
   if(list.length===0){
     document.getElementById('noRecipeMsg').style.display='block';
     document.getElementById('resultPanel').style.display='none';
-    document.querySelector('#view-check .panel').style.display='none';
+    document.querySelectorAll('#view-check .panel')[0].style.display='block';
+    document.querySelectorAll('#view-check .panel')[1].style.display='none';
     return;
   }
   document.getElementById('noRecipeMsg').style.display='none';
-  document.querySelector('#view-check .panel').style.display='block';
+  document.querySelectorAll('#view-check .panel')[1].style.display='block';
   list.forEach(r=>{
     const opt = document.createElement('option');
     opt.value = r.id;
@@ -316,24 +421,92 @@ function currentRecipe(){
 function onRecipeChange(){
   const r = currentRecipe();
   if(!r) return;
+  const hasInlay = r.pesoSemColaComInlay !== undefined && r.pesoSemColaComInlay !== null && r.pesoSemColaComInlay !== '';
+  document.getElementById('inlayToggleWrap').style.display = hasInlay ? 'block' : 'none';
+  currentInlayMode = 'sem';
+  setSegActive('sem');
   document.getElementById('qtd').value = r.qtdPadrao || 1;
   updatePesoSemCola();
+}
+
+function setInlayMode(mode){
+  currentInlayMode = mode;
+  setSegActive(mode);
+  updatePesoSemCola();
+}
+function setSegActive(mode){
+  document.getElementById('btnSemInlay').classList.toggle('active', mode==='sem');
+  document.getElementById('btnComInlay').classList.toggle('active', mode==='com');
 }
 
 function updatePesoSemCola(){
   const r = currentRecipe();
   if(!r) return;
   const qtdPadrao = r.qtdPadrao || 1;
-  const pesoUnitario = r.pesoSemCola / qtdPadrao;
+  const baseTotal = (currentInlayMode==='com' && r.pesoSemColaComInlay) ? parseFloat(r.pesoSemColaComInlay) : parseFloat(r.pesoSemCola);
+  const pesoUnitario = baseTotal / qtdPadrao;
   const qtd = parseFloat(document.getElementById('qtd').value) || 0;
   document.getElementById('pesoSemColaInput').value = (pesoUnitario * qtd).toFixed(3);
   calcular();
 }
 
-function onQtdChange(){
-  updatePesoSemCola();
+function onQtdChange(){ updatePesoSemCola(); }
+
+/* ---------- action plan ---------- */
+function buildActionPlanHTML(diff){
+  const excesso = diff > 0;
+  const itens = excesso
+    ? ['Verificar temperatura do aplicador', 'Checar pressão do cabeçote de cola', 'Confirmar velocidade da máquina', 'Notificar liderança se persistir']
+    : ['Verificar entupimento/sujeira no bico aplicador', 'Checar pressão do cabeçote de cola', 'Confirmar nível de cola no reservatório', 'Notificar liderança se persistir'];
+  let html = '<div class="action-plan"><div class="ap-title">Plano de ação — ' + (excesso ? 'excesso de cola' : 'falta de cola') + '</div>';
+  itens.forEach((t)=>{ html += '<label><input type="checkbox"> ' + t + '</label>'; });
+  html += '</div>';
+  return html;
 }
 
+/* ---------- trend chart ---------- */
+function historyForRecipe(recipeId, limit){
+  return loadHistory()
+    .filter(h=>h.receitaId===recipeId)
+    .sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp))
+    .slice(-limit);
+}
+
+function renderTrend(recipeId, alvo, tol){
+  const entries = historyForRecipe(recipeId, 10);
+  const wrap = document.getElementById('trendWrap');
+  if(entries.length < 2){ wrap.style.display='none'; document.getElementById('trendChart').innerHTML=''; return; }
+  wrap.style.display = 'block';
+
+  const vals = entries.map(e=>e.gramaturaReal);
+  const span = tol * 2.5;
+  let scaleMin = alvo - span, scaleMax = alvo + span;
+  scaleMin = Math.min(scaleMin, Math.min(...vals));
+  scaleMax = Math.max(scaleMax, Math.max(...vals));
+  if(scaleMax === scaleMin){ scaleMax += 1; scaleMin -= 1; }
+
+  const w = 300, h = 90, pad = 8;
+  const xStep = (w - 2*pad) / (entries.length - 1 || 1);
+  const yFor = v => h - pad - ((v - scaleMin) / (scaleMax - scaleMin)) * (h - 2*pad);
+
+  const points = vals.map((v,i)=> (pad + i*xStep).toFixed(1) + ',' + yFor(v).toFixed(1)).join(' ');
+  const minY = yFor(alvo - tol), maxY = yFor(alvo + tol), targetY = yFor(alvo);
+  const bandTop = Math.min(minY, maxY), bandH = Math.abs(maxY - minY);
+
+  let svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:' + h + 'px;display:block;">';
+  svg += '<rect x="' + pad + '" y="' + bandTop.toFixed(1) + '" width="' + (w-2*pad) + '" height="' + bandH.toFixed(1) + '" fill="rgba(107,191,107,.15)" />';
+  svg += '<line x1="' + pad + '" y1="' + targetY.toFixed(1) + '" x2="' + (w-pad) + '" y2="' + targetY.toFixed(1) + '" stroke="#ececec" stroke-width="1" stroke-dasharray="3,3"/>';
+  svg += '<polyline points="' + points + '" fill="none" stroke="#ececec" stroke-width="2"/>';
+  vals.forEach((v,i)=>{
+    const cx = (pad + i*xStep).toFixed(1), cy = yFor(v).toFixed(1);
+    const inTol = v >= alvo - tol && v <= alvo + tol;
+    svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3.2" fill="' + (inTol ? '#6bbf6b' : '#e2542a') + '" />';
+  });
+  svg += '</svg>';
+  document.getElementById('trendChart').innerHTML = svg;
+}
+
+/* ---------- calculation ---------- */
 function calcular(){
   const r = currentRecipe();
   const resultPanel = document.getElementById('resultPanel');
@@ -367,13 +540,17 @@ function calcular(){
   document.getElementById('detFaixa').textContent = min.toFixed(1) + ' – ' + max.toFixed(1) + ' g/m²';
 
   const badge = document.getElementById('statusBadge');
+  const apWrap = document.getElementById('actionPlan');
   if(dentro){
     badge.innerHTML = '<div class="status-badge ok"><span class="dot"></span>DENTRO DA FAIXA</div>';
+    apWrap.style.display='none';
+    apWrap.innerHTML='';
   } else {
     badge.innerHTML = '<div class="status-badge fail"><span class="dot"></span>FORA DA FAIXA — ' + (diff>0?'excesso de cola':'falta de cola') + '</div>';
+    apWrap.style.display='block';
+    apWrap.innerHTML = buildActionPlanHTML(diff);
   }
 
-  // gauge: scale spans a margin beyond [min,max] to show pointer even if out of range
   const span = tol * 2.5;
   const scaleMin = alvo - span;
   const scaleMax = alvo + span;
@@ -386,8 +563,66 @@ function calcular(){
   document.getElementById('gaugePointer').style.borderTopColor = dentro ? '#6bbf6b' : '#e2542a';
   document.getElementById('scaleMin').textContent = scaleMin.toFixed(1);
   document.getElementById('scaleMax').textContent = scaleMax.toFixed(1);
+
+  renderTrend(r.id, alvo, tol);
+  document.getElementById('saveMsg').style.display='none';
 }
 
+/* ---------- salvar conferência ---------- */
+function salvarConferencia(){
+  const r = currentRecipe();
+  if(!r) return;
+
+  const operador = document.getElementById('operador').value.trim();
+  const turno = document.getElementById('turno').value;
+  const opLote = document.getElementById('opLote').value.trim();
+  if(!operador || !opLote){
+    alert('Preencha Operador e OP/Lote antes de salvar.');
+    return;
+  }
+
+  const qtd = parseFloat(document.getElementById('qtd').value);
+  const pesoSem = parseFloat(document.getElementById('pesoSemColaInput').value);
+  const pesoCom = parseFloat(document.getElementById('pesoComCola').value);
+  if(!qtd || isNaN(pesoSem) || isNaN(pesoCom)){
+    alert('Preencha o peso com cola antes de salvar.');
+    return;
+  }
+
+  const areaM2 = (r.largura/1000) * (r.comprimento/1000);
+  const colaTotal = pesoCom - pesoSem;
+  const colaPorEtiqueta = colaTotal / qtd;
+  const gramaturaReal = colaPorEtiqueta / areaM2;
+  const min = r.gramaturaAlvo - r.variacao, max = r.gramaturaAlvo + r.variacao;
+  const status = (gramaturaReal >= min && gramaturaReal <= max) ? 'ok' : 'fora';
+
+  const entry = {
+    id: 'h_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    timestamp: new Date().toISOString(),
+    receitaId: r.id,
+    receitaNome: r.nome,
+    operador, turno, opLote,
+    inlay: currentInlayMode,
+    qtd, pesoSemCola: pesoSem, pesoComCola: pesoCom,
+    gramaturaAlvo: r.gramaturaAlvo, variacao: r.variacao,
+    gramaturaReal: Number(gramaturaReal.toFixed(3)),
+    status
+  };
+
+  const hist = loadHistory();
+  hist.push(entry);
+  saveHistory(hist);
+  saveLastCtx({operador, turno});
+
+  const msg = document.getElementById('saveMsg');
+  msg.style.display = 'block';
+  msg.textContent = 'Conferência salva às ' + new Date(entry.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) + '.';
+
+  document.getElementById('pesoComCola').value = '';
+  calcular();
+}
+
+/* ---------- receitas ---------- */
 function saveRecipe(){
   const nome = document.getElementById('rNome').value.trim();
   const largura = parseFloat(document.getElementById('rLargura').value);
@@ -396,6 +631,8 @@ function saveRecipe(){
   const variacao = parseFloat(document.getElementById('rVariacao').value);
   const qtdPadrao = parseInt(document.getElementById('rQtdPadrao').value) || 1;
   const pesoSemCola = parseFloat(document.getElementById('rPesoSemCola').value);
+  const pesoSemColaComInlayRaw = document.getElementById('rPesoSemColaComInlay').value;
+  const pesoSemColaComInlay = pesoSemColaComInlayRaw === '' ? null : parseFloat(pesoSemColaComInlayRaw);
 
   if(!nome || !largura || !comprimento || isNaN(gramaturaAlvo) || isNaN(variacao) || isNaN(pesoSemCola)){
     alert('Preencha todos os campos da receita.');
@@ -407,11 +644,11 @@ function saveRecipe(){
 
   if(editId){
     const idx = list.findIndex(r=>r.id===editId);
-    if(idx>-1) list[idx] = {...list[idx], nome, largura, comprimento, gramaturaAlvo, variacao, qtdPadrao, pesoSemCola};
+    if(idx>-1) list[idx] = {...list[idx], nome, largura, comprimento, gramaturaAlvo, variacao, qtdPadrao, pesoSemCola, pesoSemColaComInlay};
   } else {
     list.push({
       id: 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
-      nome, largura, comprimento, gramaturaAlvo, variacao, qtdPadrao, pesoSemCola
+      nome, largura, comprimento, gramaturaAlvo, variacao, qtdPadrao, pesoSemCola, pesoSemColaComInlay
     });
   }
 
@@ -431,6 +668,7 @@ function editRecipe(id){
   document.getElementById('rVariacao').value = r.variacao;
   document.getElementById('rQtdPadrao').value = r.qtdPadrao || 1;
   document.getElementById('rPesoSemCola').value = r.pesoSemCola;
+  document.getElementById('rPesoSemColaComInlay').value = (r.pesoSemColaComInlay===null || r.pesoSemColaComInlay===undefined) ? '' : r.pesoSemColaComInlay;
   document.getElementById('formTitle').textContent = 'Editar receita';
   document.getElementById('cancelBtn').style.display = 'inline-block';
   window.scrollTo({top:0, behavior:'smooth'});
@@ -438,18 +676,20 @@ function editRecipe(id){
 
 function cancelEdit(){
   document.getElementById('editId').value = '';
-  ['rNome','rLargura','rComprimento','rGramaturaAlvo','rVariacao','rQtdPadrao','rPesoSemCola'].forEach(id=>document.getElementById(id).value='');
+  ['rNome','rLargura','rComprimento','rGramaturaAlvo','rVariacao','rQtdPadrao','rPesoSemCola','rPesoSemColaComInlay'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('formTitle').textContent = 'Nova receita';
   document.getElementById('cancelBtn').style.display = 'none';
 }
 
 function deleteRecipe(id){
-  const r = loadRecipes().find(r=>r.id===id);
-  if(!r) return;
-  if(!confirm('Excluir a receita "' + r.nome + '"?')) return;
-  const list = loadRecipes().filter(r=>r.id!==id);
-  saveRecipes(list);
-  renderRecipeList();
+  requirePassword(()=>{
+    const r = loadRecipes().find(r=>r.id===id);
+    if(!r) return;
+    if(!confirm('Excluir a receita "' + r.nome + '"?')) return;
+    const list = loadRecipes().filter(r=>r.id!==id);
+    saveRecipes(list);
+    renderRecipeList();
+  });
 }
 
 function renderRecipeList(){
@@ -459,22 +699,170 @@ function renderRecipeList(){
     container.innerHTML = '<div class="empty">Nenhuma receita cadastrada ainda.</div>';
     return;
   }
-  container.innerHTML = list.map(r => `
-    <div class="recipe-card">
-      <div class="info">
-        <div class="name">${r.nome}</div>
-        <div class="spec">${r.largura}×${r.comprimento}mm · alvo ${r.gramaturaAlvo}±${r.variacao}g/m² · sem cola ${r.pesoSemCola}g (${r.qtdPadrao||1} un)</div>
-      </div>
-      <div class="actions">
-        <button class="ghost" onclick="editRecipe('${r.id}')">Editar</button>
-        <button class="ghost danger" onclick="deleteRecipe('${r.id}')">Excluir</button>
-      </div>
-    </div>
-  `).join('');
+  container.innerHTML = list.map(r => {
+    const inlayTxt = (r.pesoSemColaComInlay!==null && r.pesoSemColaComInlay!==undefined) ? (' · com inlay ' + r.pesoSemColaComInlay + 'g') : '';
+    return '<div class="recipe-card">' +
+      '<div class="info">' +
+        '<div class="name">' + r.nome + '</div>' +
+        '<div class="spec">' + r.largura + '×' + r.comprimento + 'mm · alvo ' + r.gramaturaAlvo + '±' + r.variacao + 'g/m² · sem cola ' + r.pesoSemCola + 'g (' + (r.qtdPadrao||1) + ' un)' + inlayTxt + '</div>' +
+      '</div>' +
+      '<div class="actions">' +
+        '<button class="ghost" onclick="editRecipe(\'' + r.id + '\')">Editar</button>' +
+        '<button class="ghost danger" onclick="deleteRecipe(\'' + r.id + '\')">Excluir</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
-// init
-populateSelect();
+/* ---------- histórico ---------- */
+function renderHistorico(){
+  const hist = loadHistory().slice().sort((a,b)=> new Date(b.timestamp) - new Date(a.timestamp));
+  const container = document.getElementById('historicoList');
+  if(hist.length===0){
+    container.innerHTML = '<div class="empty">Nenhuma conferência salva ainda.</div>';
+    return;
+  }
+  container.innerHTML = hist.map(h=>{
+    const dt = new Date(h.timestamp);
+    const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const statusClass = h.status==='ok' ? 'ok' : 'fora';
+    const statusLabel = h.status==='ok' ? 'DENTRO' : 'FORA';
+    const inlayTxt = h.inlay==='com' ? ' (com inlay)' : '';
+    return '<div class="hist-card">' +
+      '<div class="hist-top"><span class="hist-status ' + statusClass + '">' + statusLabel + '</span><span class="hist-date">' + dataStr + '</span></div>' +
+      '<div class="hist-main">' + h.receitaNome + inlayTxt + ' — ' + h.gramaturaReal.toFixed(2) + ' g/m²</div>' +
+      '<div class="hist-sub">Operador: ' + h.operador + ' · ' + h.turno + ' · OP/Lote: ' + h.opLote + '</div>' +
+      '<button class="ghost danger" style="margin-top:8px;" onclick="excluirHistorico(\'' + h.id + '\')">Excluir</button>' +
+    '</div>';
+  }).join('');
+}
+
+function excluirHistorico(id){
+  requirePassword(()=>{
+    if(!confirm('Excluir este registro do histórico?')) return;
+    const hist = loadHistory().filter(h=>h.id!==id);
+    saveHistory(hist);
+    renderHistorico();
+  });
+}
+
+function limparHistorico(){
+  requirePassword(()=>{
+    if(!confirm('Apagar TODO o histórico salvo neste dispositivo? Essa ação não pode ser desfeita.')) return;
+    saveHistory([]);
+    renderHistorico();
+  });
+}
+
+function exportarCSV(){
+  const hist = loadHistory().slice().sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
+  if(hist.length===0){ alert('Não há registros para exportar.'); return; }
+
+  const header = ['Data/Hora','Operador','Turno','OP/Lote','Receita','Tara','Qtd Amostra','Peso Sem Cola (g)','Peso Com Cola (g)','Gramatura Real (g/m2)','Gramatura Alvo (g/m2)','Variacao (g/m2)','Status'];
+  const rows = hist.map(h=>[
+    new Date(h.timestamp).toLocaleString('pt-BR'),
+    h.operador, h.turno, h.opLote, h.receitaNome,
+    h.inlay==='com' ? 'Com Inlay' : 'Sem Inlay',
+    h.qtd, h.pesoSemCola, h.pesoComCola, h.gramaturaReal, h.gramaturaAlvo, h.variacao,
+    h.status==='ok' ? 'Dentro da faixa' : 'Fora da faixa'
+  ]);
+  let csv = header.join(';') + '\n' + rows.map(r=>r.map(v=>String(v).replace(/;/g,',')).join(';')).join('\n');
+  csv = '\uFEFF' + csv;
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date();
+  a.href = url;
+  a.download = 'historico_cola_' + now.toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- backup (export/import entre aparelhos) ---------- */
+function downloadFile(filename, mime, content){
+  const blob = new Blob([content], {type: mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportarBackup(){
+  const data = {
+    tipo: 'haco_etiquetas_backup',
+    versao: 1,
+    exportadoEm: new Date().toISOString(),
+    recipes: loadRecipes(),
+    history: loadHistory()
+  };
+  const json = JSON.stringify(data, null, 2);
+  const now = new Date();
+  downloadFile('backup_haco_etiquetas_' + now.toISOString().slice(0,10) + '.json', 'application/json;charset=utf-8;', json);
+}
+
+function importarBackupFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    let data;
+    try{
+      data = JSON.parse(e.target.result);
+    }catch(err){
+      alert('Não foi possível ler o arquivo. Verifique se é um backup exportado por este app.');
+      event.target.value = '';
+      return;
+    }
+    if(!data || !Array.isArray(data.recipes) || !Array.isArray(data.history)){
+      alert('Arquivo inválido — não parece ser um backup deste app.');
+      event.target.value = '';
+      return;
+    }
+
+    const recipes = loadRecipes();
+    let recipesNovas = 0, recipesAtualizadas = 0;
+    data.recipes.forEach(r=>{
+      const idx = recipes.findIndex(x=>x.id===r.id);
+      if(idx>-1){ recipes[idx] = r; recipesAtualizadas++; }
+      else { recipes.push(r); recipesNovas++; }
+    });
+    saveRecipes(recipes);
+
+    const hist = loadHistory();
+    let histNovos = 0;
+    data.history.forEach(h=>{
+      if(!hist.find(x=>x.id===h.id)){ hist.push(h); histNovos++; }
+    });
+    saveHistory(hist);
+
+    alert('Importação concluída: ' + recipesNovas + ' receita(s) nova(s), ' + recipesAtualizadas + ' atualizada(s), ' + histNovos + ' registro(s) de histórico novo(s).');
+    renderRecipeList();
+    populateSelect();
+    event.target.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+/* ---------- init ---------- */
+(function init(){
+  const ctx = loadLastCtx();
+  if(ctx.operador) document.getElementById('operador').value = ctx.operador;
+  if(ctx.turno) document.getElementById('turno').value = ctx.turno;
+  populateSelect();
+})();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
 </script>
 </body>
 </html>
