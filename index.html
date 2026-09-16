@@ -199,11 +199,11 @@
           <input type="number" id="qtd" value="1" min="1" step="1" oninput="onQtdChange()">
         </div>
         <div>
-          <label for="pesoSemColaInput">Peso sem cola — amostra (g) 🔒</label>
-          <input type="number" id="pesoSemColaInput" step="0.001" placeholder="0.000" disabled class="locked">
+          <label for="pesoSemColaInput">Peso sem cola — amostra (g)</label>
+          <input type="number" id="pesoSemColaInput" step="0.001" placeholder="0.000" oninput="calcular()">
         </div>
       </div>
-      <div class="hint">Travado — vem da receita automaticamente, conforme a quantidade e a tara selecionada.</div>
+      <div class="hint">Vem sugerido da receita, mas ajuste com o peso real pesado agora — o papel também varia de gramatura entre lotes.</div>
 
       <label for="pesoComCola">Peso com cola — amostra (g)</label>
       <input type="number" id="pesoComCola" step="0.001" placeholder="0.000" oninput="calcular()">
@@ -237,8 +237,14 @@
       </div>
 
       <div id="trendWrap" style="display:none;">
-        <div class="subheading">Tendência — últimas leituras desta receita</div>
+        <div class="subheading">Cola — tendência das últimas leituras desta receita</div>
         <div id="trendChart"></div>
+      </div>
+
+      <div id="paperTrendWrap" style="display:none;">
+        <div class="subheading">Papel (substrato) — variação de peso sem cola</div>
+        <div id="paperTrendChart"></div>
+        <div class="hint" style="margin-top:6px;">Gramatura do papel puro, sem cola — acompanhe se o lote está desviando.</div>
       </div>
 
       <button class="primary" id="saveBtn" onclick="salvarConferencia()" style="margin-top:16px;">Salvar conferência</button>
@@ -506,6 +512,37 @@ function renderTrend(recipeId, alvo, tol){
   document.getElementById('trendChart').innerHTML = svg;
 }
 
+function renderPaperTrend(recipeId){
+  const entries = historyForRecipe(recipeId, 10);
+  const wrap = document.getElementById('paperTrendWrap');
+  if(entries.length < 2 || entries.some(e=>e.papelGramatura===undefined)){
+    wrap.style.display='none'; document.getElementById('paperTrendChart').innerHTML='';
+    return;
+  }
+  wrap.style.display = 'block';
+
+  const vals = entries.map(e=>e.papelGramatura);
+  let scaleMin = Math.min(...vals), scaleMax = Math.max(...vals);
+  const pad10 = Math.max((scaleMax-scaleMin)*0.2, 1);
+  scaleMin -= pad10; scaleMax += pad10;
+  if(scaleMax === scaleMin){ scaleMax += 1; scaleMin -= 1; }
+
+  const w = 300, h = 70, pad = 8;
+  const xStep = (w - 2*pad) / (entries.length - 1 || 1);
+  const yFor = v => h - pad - ((v - scaleMin) / (scaleMax - scaleMin)) * (h - 2*pad);
+
+  const points = vals.map((v,i)=> (pad + i*xStep).toFixed(1) + ',' + yFor(v).toFixed(1)).join(' ');
+
+  let svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:' + h + 'px;display:block;">';
+  svg += '<polyline points="' + points + '" fill="none" stroke="#9a9c9f" stroke-width="2"/>';
+  vals.forEach((v,i)=>{
+    const cx = (pad + i*xStep).toFixed(1), cy = yFor(v).toFixed(1);
+    svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3" fill="#ececec" />';
+  });
+  svg += '</svg>';
+  document.getElementById('paperTrendChart').innerHTML = svg;
+}
+
 /* ---------- calculation ---------- */
 function calcular(){
   const r = currentRecipe();
@@ -565,6 +602,7 @@ function calcular(){
   document.getElementById('scaleMax').textContent = scaleMax.toFixed(1);
 
   renderTrend(r.id, alvo, tol);
+  renderPaperTrend(r.id);
   document.getElementById('saveMsg').style.display='none';
 }
 
@@ -593,6 +631,7 @@ function salvarConferencia(){
   const colaTotal = pesoCom - pesoSem;
   const colaPorEtiqueta = colaTotal / qtd;
   const gramaturaReal = colaPorEtiqueta / areaM2;
+  const papelGramatura = (pesoSem / qtd) / areaM2;
   const min = r.gramaturaAlvo - r.variacao, max = r.gramaturaAlvo + r.variacao;
   const status = (gramaturaReal >= min && gramaturaReal <= max) ? 'ok' : 'fora';
 
@@ -606,6 +645,7 @@ function salvarConferencia(){
     qtd, pesoSemCola: pesoSem, pesoComCola: pesoCom,
     gramaturaAlvo: r.gramaturaAlvo, variacao: r.variacao,
     gramaturaReal: Number(gramaturaReal.toFixed(3)),
+    papelGramatura: Number(papelGramatura.toFixed(3)),
     status
   };
 
@@ -728,10 +768,11 @@ function renderHistorico(){
     const statusClass = h.status==='ok' ? 'ok' : 'fora';
     const statusLabel = h.status==='ok' ? 'DENTRO' : 'FORA';
     const inlayTxt = h.inlay==='com' ? ' (com inlay)' : '';
+    const papelTxt = (h.papelGramatura!==undefined) ? (' · papel ' + h.papelGramatura.toFixed(1) + 'g/m²') : '';
     return '<div class="hist-card">' +
       '<div class="hist-top"><span class="hist-status ' + statusClass + '">' + statusLabel + '</span><span class="hist-date">' + dataStr + '</span></div>' +
       '<div class="hist-main">' + h.receitaNome + inlayTxt + ' — ' + h.gramaturaReal.toFixed(2) + ' g/m²</div>' +
-      '<div class="hist-sub">Operador: ' + h.operador + ' · ' + h.turno + ' · OP/Lote: ' + h.opLote + '</div>' +
+      '<div class="hist-sub">Operador: ' + h.operador + ' · ' + h.turno + ' · OP/Lote: ' + h.opLote + papelTxt + '</div>' +
       '<button class="ghost danger" style="margin-top:8px;" onclick="excluirHistorico(\'' + h.id + '\')">Excluir</button>' +
     '</div>';
   }).join('');
@@ -758,12 +799,12 @@ function exportarCSV(){
   const hist = loadHistory().slice().sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
   if(hist.length===0){ alert('Não há registros para exportar.'); return; }
 
-  const header = ['Data/Hora','Operador','Turno','OP/Lote','Receita','Tara','Qtd Amostra','Peso Sem Cola (g)','Peso Com Cola (g)','Gramatura Real (g/m2)','Gramatura Alvo (g/m2)','Variacao (g/m2)','Status'];
+  const header = ['Data/Hora','Operador','Turno','OP/Lote','Receita','Tara','Qtd Amostra','Peso Sem Cola (g)','Peso Com Cola (g)','Gramatura Papel (g/m2)','Gramatura Real Cola (g/m2)','Gramatura Alvo (g/m2)','Variacao (g/m2)','Status'];
   const rows = hist.map(h=>[
     new Date(h.timestamp).toLocaleString('pt-BR'),
     h.operador, h.turno, h.opLote, h.receitaNome,
     h.inlay==='com' ? 'Com Inlay' : 'Sem Inlay',
-    h.qtd, h.pesoSemCola, h.pesoComCola, h.gramaturaReal, h.gramaturaAlvo, h.variacao,
+    h.qtd, h.pesoSemCola, h.pesoComCola, (h.papelGramatura!==undefined?h.papelGramatura:''), h.gramaturaReal, h.gramaturaAlvo, h.variacao,
     h.status==='ok' ? 'Dentro da faixa' : 'Fora da faixa'
   ]);
   let csv = header.join(';') + '\n' + rows.map(r=>r.map(v=>String(v).replace(/;/g,',')).join(';')).join('\n');
