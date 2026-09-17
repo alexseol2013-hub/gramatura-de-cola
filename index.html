@@ -315,6 +315,10 @@
       <input type="number" id="rPesoSemColaComInlay" step="0.001" placeholder="deixe em branco se não houver inlay">
       <div class="hint">Preencha só se essa etiqueta também tiver uma versão com inlay (chip RFID). Mesma quantidade acima.</div>
 
+      <label for="rPapelVariacao">Variação aceitável do peso do papel (g/m²) — opcional</label>
+      <input type="number" id="rPapelVariacao" step="0.1" placeholder="deixe em branco pra não usar faixa">
+      <div class="hint">Se preencher, o gráfico do papel ganha faixa verde/vermelha igual o da cola, usando o peso sem cola acima como referência. Não se aplica a receitas com inlay.</div>
+
       <div style="display:flex;gap:10px;">
         <button class="primary" onclick="saveRecipe()" style="flex:1;">Salvar receita</button>
         <button class="ghost" onclick="cancelEdit()" id="cancelBtn" style="display:none;">Cancelar</button>
@@ -541,26 +545,57 @@ function buildGlueTrendSVG(entries, alvo, tol){
   return svg;
 }
 
-function buildPaperTrendSVG(entries){
+function paperAlvoTolFor(recipe){
+  if(!recipe) return null;
+  if(recipe.papelVariacao===null || recipe.papelVariacao===undefined || isNaN(recipe.papelVariacao)) return null;
+  if(recipe.pesoSemColaComInlay!==null && recipe.pesoSemColaComInlay!==undefined) return null; // evita misturar referências sem/com inlay
+  const areaM2 = (recipe.largura/1000) * (recipe.comprimento/1000);
+  const qtdPadrao = recipe.qtdPadrao || 1;
+  const alvo = (recipe.pesoSemCola / qtdPadrao) / areaM2;
+  return { alvo: alvo, tol: recipe.papelVariacao };
+}
+
+function buildPaperTrendSVG(entries, alvoTol){
   if(entries.length < 2 || entries.some(e=>e.papelGramatura===undefined)) return null;
 
   const vals = entries.map(e=>e.papelGramatura);
-  let scaleMin = Math.min(...vals), scaleMax = Math.max(...vals);
-  const pad10 = Math.max((scaleMax-scaleMin)*0.2, 1);
-  scaleMin -= pad10; scaleMax += pad10;
+  const hasBand = !!(alvoTol && !isNaN(alvoTol.alvo) && !isNaN(alvoTol.tol));
+
+  let scaleMin, scaleMax;
+  if(hasBand){
+    const span = alvoTol.tol * 2.5;
+    scaleMin = alvoTol.alvo - span; scaleMax = alvoTol.alvo + span;
+    scaleMin = Math.min(scaleMin, Math.min(...vals));
+    scaleMax = Math.max(scaleMax, Math.max(...vals));
+  } else {
+    scaleMin = Math.min(...vals); scaleMax = Math.max(...vals);
+    const pad10 = Math.max((scaleMax-scaleMin)*0.2, 1);
+    scaleMin -= pad10; scaleMax += pad10;
+  }
   if(scaleMax === scaleMin){ scaleMax += 1; scaleMin -= 1; }
 
-  const w = 300, h = 70, pad = 8;
+  const w = 300, h = hasBand ? 90 : 70, pad = 8;
   const xStep = (w - 2*pad) / (entries.length - 1 || 1);
   const yFor = v => h - pad - ((v - scaleMin) / (scaleMax - scaleMin)) * (h - 2*pad);
 
   const points = vals.map((v,i)=> (pad + i*xStep).toFixed(1) + ',' + yFor(v).toFixed(1)).join(' ');
 
   let svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:' + h + 'px;display:block;">';
-  svg += '<polyline points="' + points + '" fill="none" stroke="#9a9c9f" stroke-width="2"/>';
+  if(hasBand){
+    const minY = yFor(alvoTol.alvo - alvoTol.tol), maxY = yFor(alvoTol.alvo + alvoTol.tol), targetY = yFor(alvoTol.alvo);
+    const bandTop = Math.min(minY, maxY), bandH = Math.abs(maxY - minY);
+    svg += '<rect x="' + pad + '" y="' + bandTop.toFixed(1) + '" width="' + (w-2*pad) + '" height="' + bandH.toFixed(1) + '" fill="rgba(107,191,107,.15)" />';
+    svg += '<line x1="' + pad + '" y1="' + targetY.toFixed(1) + '" x2="' + (w-pad) + '" y2="' + targetY.toFixed(1) + '" stroke="#ececec" stroke-width="1" stroke-dasharray="3,3"/>';
+  }
+  svg += '<polyline points="' + points + '" fill="none" stroke="' + (hasBand ? '#ececec' : '#9a9c9f') + '" stroke-width="2"/>';
   vals.forEach((v,i)=>{
     const cx = (pad + i*xStep).toFixed(1), cy = yFor(v).toFixed(1);
-    svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3" fill="#ececec" />';
+    let color = '#ececec';
+    if(hasBand){
+      const inTol = v >= alvoTol.alvo - alvoTol.tol && v <= alvoTol.alvo + alvoTol.tol;
+      color = inTol ? '#6bbf6b' : '#e2542a';
+    }
+    svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (hasBand ? '3.2' : '3') + '" fill="' + color + '" />';
   });
   svg += '</svg>';
   return svg;
@@ -590,7 +625,8 @@ function renderTrend(recipeId, alvo, tol){
 
 function renderPaperTrend(recipeId){
   const entries = historyForRecipe(recipeId, 10);
-  const svg = buildPaperTrendSVG(entries);
+  const recipe = loadRecipes().find(r=>r.id===recipeId);
+  const svg = buildPaperTrendSVG(entries, paperAlvoTolFor(recipe));
   const wrap = document.getElementById('paperTrendWrap');
   if(!svg){ wrap.style.display='none'; document.getElementById('paperTrendChart').innerHTML=''; setDateRangeLabel('paperTrendDates', null); return; }
   wrap.style.display = 'block';
@@ -639,7 +675,7 @@ function renderHistTrendCharts(){
   }
   const entries = historyForRecipe(recipeId, 10);
   const glueSvg = buildGlueTrendSVG(entries, recipe.gramaturaAlvo, recipe.variacao);
-  const paperSvg = buildPaperTrendSVG(entries);
+  const paperSvg = buildPaperTrendSVG(entries, paperAlvoTolFor(recipe));
 
   glueWrap.style.display = glueSvg ? 'block' : 'none';
   if(glueSvg){ document.getElementById('histTrendChart').innerHTML = glueSvg; setDateRangeLabel('histTrendDates', entries); }
@@ -787,6 +823,8 @@ function saveRecipe(){
   const pesoSemCola = parseFloat(document.getElementById('rPesoSemCola').value);
   const pesoSemColaComInlayRaw = document.getElementById('rPesoSemColaComInlay').value;
   const pesoSemColaComInlay = pesoSemColaComInlayRaw === '' ? null : parseFloat(pesoSemColaComInlayRaw);
+  const papelVariacaoRaw = document.getElementById('rPapelVariacao').value;
+  const papelVariacao = papelVariacaoRaw === '' ? null : parseFloat(papelVariacaoRaw);
 
   if(!nome || !largura || !comprimento || isNaN(gramaturaAlvo) || isNaN(variacao) || isNaN(pesoSemCola)){
     alert('Preencha todos os campos da receita.');
@@ -798,11 +836,11 @@ function saveRecipe(){
 
   if(editId){
     const idx = list.findIndex(r=>r.id===editId);
-    if(idx>-1) list[idx] = {...list[idx], nome, largura, comprimento, gramaturaAlvo, variacao, qtdPadrao, pesoSemCola, pesoSemColaComInlay};
+    if(idx>-1) list[idx] = {...list[idx], nome, largura, comprimento, gramaturaAlvo, variacao, qtdPadrao, pesoSemCola, pesoSemColaComInlay, papelVariacao};
   } else {
     list.push({
       id: 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
-      nome, largura, comprimento, gramaturaAlvo, variacao, qtdPadrao, pesoSemCola, pesoSemColaComInlay
+      nome, largura, comprimento, gramaturaAlvo, variacao, qtdPadrao, pesoSemCola, pesoSemColaComInlay, papelVariacao
     });
   }
 
@@ -823,6 +861,7 @@ function editRecipe(id){
   document.getElementById('rQtdPadrao').value = r.qtdPadrao || 1;
   document.getElementById('rPesoSemCola').value = r.pesoSemCola;
   document.getElementById('rPesoSemColaComInlay').value = (r.pesoSemColaComInlay===null || r.pesoSemColaComInlay===undefined) ? '' : r.pesoSemColaComInlay;
+  document.getElementById('rPapelVariacao').value = (r.papelVariacao===null || r.papelVariacao===undefined) ? '' : r.papelVariacao;
   document.getElementById('formTitle').textContent = 'Editar receita';
   document.getElementById('cancelBtn').style.display = 'inline-block';
   window.scrollTo({top:0, behavior:'smooth'});
@@ -830,7 +869,7 @@ function editRecipe(id){
 
 function cancelEdit(){
   document.getElementById('editId').value = '';
-  ['rNome','rLargura','rComprimento','rGramaturaAlvo','rVariacao','rQtdPadrao','rPesoSemCola','rPesoSemColaComInlay'].forEach(id=>document.getElementById(id).value='');
+  ['rNome','rLargura','rComprimento','rGramaturaAlvo','rVariacao','rQtdPadrao','rPesoSemCola','rPesoSemColaComInlay','rPapelVariacao'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('formTitle').textContent = 'Nova receita';
   document.getElementById('cancelBtn').style.display = 'none';
 }
@@ -855,10 +894,11 @@ function renderRecipeList(){
   }
   container.innerHTML = list.map(r => {
     const inlayTxt = (r.pesoSemColaComInlay!==null && r.pesoSemColaComInlay!==undefined) ? (' · com inlay ' + r.pesoSemColaComInlay + 'g') : '';
+    const papelTxt = (r.papelVariacao!==null && r.papelVariacao!==undefined) ? (' · papel ±' + r.papelVariacao + 'g/m²') : '';
     return '<div class="recipe-card">' +
       '<div class="info">' +
         '<div class="name">' + r.nome + '</div>' +
-        '<div class="spec">' + r.largura + '×' + r.comprimento + 'mm · alvo ' + r.gramaturaAlvo + '±' + r.variacao + 'g/m² · sem cola ' + r.pesoSemCola + 'g (' + (r.qtdPadrao||1) + ' un)' + inlayTxt + '</div>' +
+        '<div class="spec">' + r.largura + '×' + r.comprimento + 'mm · alvo ' + r.gramaturaAlvo + '±' + r.variacao + 'g/m² · sem cola ' + r.pesoSemCola + 'g (' + (r.qtdPadrao||1) + ' un)' + inlayTxt + papelTxt + '</div>' +
       '</div>' +
       '<div class="actions">' +
         '<button class="ghost" onclick="editRecipe(\'' + r.id + '\')">Editar</button>' +
