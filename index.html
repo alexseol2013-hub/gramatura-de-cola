@@ -49,8 +49,8 @@
 
   nav{display:flex;gap:2px;margin-bottom:20px;background:var(--panel);border:1px solid var(--line);padding:3px;border-radius:6px;}
   nav button{
-    flex:1;padding:10px 8px;background:transparent;border:none;color:var(--text-dim);
-    font-family:var(--disp);font-size:15px;font-weight:600;letter-spacing:.3px;
+    flex:1;padding:10px 4px;background:transparent;border:none;color:var(--text-dim);
+    font-family:var(--disp);font-size:14px;font-weight:600;letter-spacing:.2px;
     border-radius:4px;cursor:pointer;transition:.15s;
   }
   nav button.active{background:var(--accent);color:#141516;}
@@ -164,6 +164,7 @@
     <button id="tabCheck" class="active" onclick="switchTab('check')">Conferir</button>
     <button id="tabRecipes" onclick="switchTab('recipes')">Receitas</button>
     <button id="tabHistorico" onclick="switchTab('historico')">Histórico</button>
+    <button id="tabConfig" onclick="switchTab('config')">⚙️</button>
   </nav>
 
   <!-- ===== CONFERIR ===== -->
@@ -329,15 +330,6 @@
       <h2>Receitas cadastradas</h2>
       <div id="recipeList"></div>
     </div>
-
-    <div class="panel">
-      <h2>Backup e transferência entre aparelhos</h2>
-      <div class="hint" style="margin-top:0;">Gera um arquivo com todas as receitas e o histórico deste aparelho. Envie por WhatsApp, e-mail ou drive e importe no outro celular.</div>
-      <button class="primary" onclick="exportarBackup()" style="margin-bottom:12px;">Exportar backup (.json)</button>
-      <label for="importFile">Importar backup (.json)</label>
-      <input type="file" id="importFile" accept="application/json,.json" onchange="importarBackupFile(event)">
-      <div class="hint">A importação soma com o que já existe neste aparelho — não apaga nada. Receitas com o mesmo ID são atualizadas; o histórico nunca duplica.</div>
-    </div>
   </div>
 
   <!-- ===== HISTÓRICO ===== -->
@@ -362,11 +354,28 @@
 
     <div class="panel">
       <h2>Histórico de conferências</h2>
-      <div style="display:flex;gap:10px;margin-bottom:14px;">
+      <div id="historicoList"></div>
+    </div>
+  </div>
+
+  <!-- ===== CONFIGURAÇÕES ===== -->
+  <div id="view-config" style="display:none;">
+    <div class="panel">
+      <h2>Histórico — exportar e limpar</h2>
+      <div style="display:flex;gap:10px;">
         <button class="ghost" onclick="exportarCSV()" style="flex:1;">Exportar CSV</button>
         <button class="ghost danger" onclick="limparHistorico()" style="flex:1;">Limpar histórico</button>
       </div>
-      <div id="historicoList"></div>
+      <div class="hint" style="margin-top:10px;margin-bottom:0;">O CSV abre certo no Excel (separado por ; e com acentuação correta).</div>
+    </div>
+
+    <div class="panel">
+      <h2>Backup e transferência entre aparelhos</h2>
+      <div class="hint" style="margin-top:0;">Gera um arquivo com todas as receitas e o histórico deste aparelho. Envie por WhatsApp, e-mail ou drive e importe no outro celular.</div>
+      <button class="primary" onclick="exportarBackup()" style="margin-bottom:12px;">Exportar backup (.json)</button>
+      <label for="importFile">Importar backup (.json)</label>
+      <input type="file" id="importFile" accept="application/json,.json" onchange="importarBackupFile(event)">
+      <div class="hint">A importação soma com o que já existe neste aparelho — não apaga nada. Receitas com o mesmo ID são atualizadas; o histórico nunca duplica.</div>
     </div>
   </div>
 
@@ -412,19 +421,20 @@ function requirePassword(actionFn){
 
 /* ---------- tabs ---------- */
 function switchTab(tab){
-  if(tab === 'recipes' && !recipesUnlocked){
-    requirePassword(()=>{ doSwitch('recipes'); });
+  if((tab === 'recipes' || tab === 'config') && !recipesUnlocked){
+    requirePassword(()=>{ doSwitch(tab); });
     return;
   }
   doSwitch(tab);
 }
 function doSwitch(tab){
-  ['check','recipes','historico'].forEach(t=>{
+  ['check','recipes','historico','config'].forEach(t=>{
     document.getElementById('view-'+t).style.display = (t===tab) ? 'block' : 'none';
   });
   document.getElementById('tabCheck').classList.toggle('active', tab==='check');
   document.getElementById('tabRecipes').classList.toggle('active', tab==='recipes');
   document.getElementById('tabHistorico').classList.toggle('active', tab==='historico');
+  document.getElementById('tabConfig').classList.toggle('active', tab==='config');
   if(tab==='check'){ populateSelect(); }
   if(tab==='recipes'){ renderRecipeList(); }
   if(tab==='historico'){ renderHistorico(); populateHistTrendSelect(); }
