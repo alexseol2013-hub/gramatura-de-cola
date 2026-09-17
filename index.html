@@ -325,6 +325,22 @@
   <!-- ===== HISTÓRICO ===== -->
   <div id="view-historico" style="display:none;">
     <div class="panel">
+      <h2>Tendência por receita</h2>
+      <label for="histTrendSelect">Receita</label>
+      <select id="histTrendSelect" onchange="onHistTrendChange()"></select>
+
+      <div id="histTrendWrap" style="display:none;">
+        <div class="subheading">Cola — tendência das últimas leituras</div>
+        <div id="histTrendChart"></div>
+      </div>
+      <div id="histPaperTrendWrap" style="display:none;">
+        <div class="subheading">Papel (substrato) — variação de peso sem cola</div>
+        <div id="histPaperTrendChart"></div>
+      </div>
+      <div class="empty" id="histTrendEmpty" style="display:none;"></div>
+    </div>
+
+    <div class="panel">
       <h2>Histórico de conferências</h2>
       <div style="display:flex;gap:10px;margin-bottom:14px;">
         <button class="ghost" onclick="exportarCSV()" style="flex:1;">Exportar CSV</button>
@@ -391,7 +407,7 @@ function doSwitch(tab){
   document.getElementById('tabHistorico').classList.toggle('active', tab==='historico');
   if(tab==='check'){ populateSelect(); }
   if(tab==='recipes'){ renderRecipeList(); }
-  if(tab==='historico'){ renderHistorico(); }
+  if(tab==='historico'){ renderHistorico(); populateHistTrendSelect(); }
 }
 
 /* ---------- conferir: recipe select ---------- */
@@ -478,11 +494,8 @@ function historyForRecipe(recipeId, limit){
     .slice(-limit);
 }
 
-function renderTrend(recipeId, alvo, tol){
-  const entries = historyForRecipe(recipeId, 10);
-  const wrap = document.getElementById('trendWrap');
-  if(entries.length < 2){ wrap.style.display='none'; document.getElementById('trendChart').innerHTML=''; return; }
-  wrap.style.display = 'block';
+function buildGlueTrendSVG(entries, alvo, tol){
+  if(entries.length < 2) return null;
 
   const vals = entries.map(e=>e.gramaturaReal);
   const span = tol * 2.5;
@@ -509,17 +522,11 @@ function renderTrend(recipeId, alvo, tol){
     svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3.2" fill="' + (inTol ? '#6bbf6b' : '#e2542a') + '" />';
   });
   svg += '</svg>';
-  document.getElementById('trendChart').innerHTML = svg;
+  return svg;
 }
 
-function renderPaperTrend(recipeId){
-  const entries = historyForRecipe(recipeId, 10);
-  const wrap = document.getElementById('paperTrendWrap');
-  if(entries.length < 2 || entries.some(e=>e.papelGramatura===undefined)){
-    wrap.style.display='none'; document.getElementById('paperTrendChart').innerHTML='';
-    return;
-  }
-  wrap.style.display = 'block';
+function buildPaperTrendSVG(entries){
+  if(entries.length < 2 || entries.some(e=>e.papelGramatura===undefined)) return null;
 
   const vals = entries.map(e=>e.papelGramatura);
   let scaleMin = Math.min(...vals), scaleMax = Math.max(...vals);
@@ -540,7 +547,80 @@ function renderPaperTrend(recipeId){
     svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3" fill="#ececec" />';
   });
   svg += '</svg>';
+  return svg;
+}
+
+function renderTrend(recipeId, alvo, tol){
+  const entries = historyForRecipe(recipeId, 10);
+  const svg = buildGlueTrendSVG(entries, alvo, tol);
+  const wrap = document.getElementById('trendWrap');
+  if(!svg){ wrap.style.display='none'; document.getElementById('trendChart').innerHTML=''; return; }
+  wrap.style.display = 'block';
+  document.getElementById('trendChart').innerHTML = svg;
+}
+
+function renderPaperTrend(recipeId){
+  const entries = historyForRecipe(recipeId, 10);
+  const svg = buildPaperTrendSVG(entries);
+  const wrap = document.getElementById('paperTrendWrap');
+  if(!svg){ wrap.style.display='none'; document.getElementById('paperTrendChart').innerHTML=''; return; }
+  wrap.style.display = 'block';
   document.getElementById('paperTrendChart').innerHTML = svg;
+}
+
+/* ---------- tendência na aba histórico (sem precisar pesar de novo) ---------- */
+function populateHistTrendSelect(){
+  const list = loadRecipes();
+  const sel = document.getElementById('histTrendSelect');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '';
+  if(list.length===0){
+    sel.innerHTML = '<option value="">Nenhuma receita cadastrada</option>';
+    renderHistTrendCharts();
+    return;
+  }
+  list.forEach(r=>{
+    const opt = document.createElement('option');
+    opt.value = r.id;
+    opt.textContent = r.nome;
+    sel.appendChild(opt);
+  });
+  if(prev && list.find(r=>r.id===prev)) sel.value = prev;
+  renderHistTrendCharts();
+}
+
+function onHistTrendChange(){ renderHistTrendCharts(); }
+
+function renderHistTrendCharts(){
+  const sel = document.getElementById('histTrendSelect');
+  const recipeId = sel ? sel.value : '';
+  const recipe = loadRecipes().find(r=>r.id===recipeId);
+  const glueWrap = document.getElementById('histTrendWrap');
+  const paperWrap = document.getElementById('histPaperTrendWrap');
+  const emptyMsg = document.getElementById('histTrendEmpty');
+  if(!recipe){
+    glueWrap.style.display='none'; paperWrap.style.display='none';
+    emptyMsg.style.display='block';
+    emptyMsg.textContent = 'Cadastre uma receita para ver a tendência.';
+    return;
+  }
+  const entries = historyForRecipe(recipeId, 10);
+  const glueSvg = buildGlueTrendSVG(entries, recipe.gramaturaAlvo, recipe.variacao);
+  const paperSvg = buildPaperTrendSVG(entries);
+
+  glueWrap.style.display = glueSvg ? 'block' : 'none';
+  if(glueSvg) document.getElementById('histTrendChart').innerHTML = glueSvg;
+
+  paperWrap.style.display = paperSvg ? 'block' : 'none';
+  if(paperSvg) document.getElementById('histPaperTrendChart').innerHTML = paperSvg;
+
+  if(!glueSvg && !paperSvg){
+    emptyMsg.style.display = 'block';
+    emptyMsg.textContent = 'Ainda não há leituras suficientes salvas para essa receita (mínimo 2).';
+  } else {
+    emptyMsg.style.display = 'none';
+  }
 }
 
 /* ---------- calculation ---------- */
@@ -784,6 +864,7 @@ function excluirHistorico(id){
     const hist = loadHistory().filter(h=>h.id!==id);
     saveHistory(hist);
     renderHistorico();
+    renderHistTrendCharts();
   });
 }
 
@@ -792,6 +873,7 @@ function limparHistorico(){
     if(!confirm('Apagar TODO o histórico salvo neste dispositivo? Essa ação não pode ser desfeita.')) return;
     saveHistory([]);
     renderHistorico();
+    renderHistTrendCharts();
   });
 }
 
