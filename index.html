@@ -95,6 +95,13 @@
   .gauge-readout{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:4px;}
   .gauge-readout .val{font-family:var(--mono);font-size:34px;font-weight:600;}
   .gauge-readout .unit{font-family:var(--mono);font-size:14px;color:var(--text-dim);margin-left:4px;}
+  .gauge-readout .resultado-label{font-family:var(--mono);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px;}
+
+  .target-callout{background:var(--panel-2);border:2px solid var(--accent);border-radius:6px;padding:10px 14px;margin-bottom:16px;}
+  .target-callout-k{font-family:var(--mono);font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;}
+  .target-callout-v{font-family:var(--disp);font-size:28px;font-weight:700;color:var(--accent);letter-spacing:.3px;}
+  .target-callout-v .pm{font-size:20px;color:var(--text-dim);margin:0 2px;}
+  .target-callout-v .unit-sm{font-family:var(--mono);font-size:15px;font-weight:400;color:var(--text-dim);margin-left:4px;}
   .gauge-track{position:relative;height:34px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;overflow:visible;margin-bottom:6px;}
   .gauge-band{position:absolute;top:0;bottom:0;background:rgba(107,191,107,.22);border-left:1px solid var(--ok);border-right:1px solid var(--ok);}
   .gauge-target{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--accent);}
@@ -140,6 +147,7 @@
     .gauge-readout .val{font-size:28px;}
     .row2{grid-template-columns:1fr;}
     .detail-grid{grid-template-columns:1fr;}
+    .target-callout-v{font-size:24px;}
   }
 </style>
 </head>
@@ -212,10 +220,14 @@
 
     <div class="panel" id="resultPanel" style="display:none;">
       <h2>Resultado</h2>
+      <div class="target-callout">
+        <div class="target-callout-k">Quantidade correta de cola</div>
+        <div class="target-callout-v"><span id="resTarget">--</span> <span class="pm">±</span> <span id="resTol">--</span> <span class="unit-sm">g/m²</span></div>
+      </div>
       <div class="gauge-wrap">
         <div class="gauge-readout">
           <div><span class="val" id="resVal">--</span><span class="unit">g/m²</span></div>
-          <div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);">alvo <span id="resTarget">--</span> ± <span id="resTol">--</span></div>
+          <div class="resultado-label">medido agora</div>
         </div>
         <div class="gauge-track" id="gaugeTrack">
           <div class="gauge-band" id="gaugeBand"></div>
@@ -239,11 +251,13 @@
       <div id="trendWrap" style="display:none;">
         <div class="subheading">Cola — tendência das últimas leituras desta receita</div>
         <div id="trendChart"></div>
+        <div class="gauge-scale" id="trendDates"></div>
       </div>
 
       <div id="paperTrendWrap" style="display:none;">
         <div class="subheading">Papel (substrato) — variação de peso sem cola</div>
         <div id="paperTrendChart"></div>
+        <div class="gauge-scale" id="paperTrendDates"></div>
         <div class="hint" style="margin-top:6px;">Gramatura do papel puro, sem cola — acompanhe se o lote está desviando.</div>
       </div>
 
@@ -332,10 +346,12 @@
       <div id="histTrendWrap" style="display:none;">
         <div class="subheading">Cola — tendência das últimas leituras</div>
         <div id="histTrendChart"></div>
+        <div class="gauge-scale" id="histTrendDates"></div>
       </div>
       <div id="histPaperTrendWrap" style="display:none;">
         <div class="subheading">Papel (substrato) — variação de peso sem cola</div>
         <div id="histPaperTrendChart"></div>
+        <div class="gauge-scale" id="histPaperTrendDates"></div>
       </div>
       <div class="empty" id="histTrendEmpty" style="display:none;"></div>
     </div>
@@ -550,22 +566,36 @@ function buildPaperTrendSVG(entries){
   return svg;
 }
 
+function formatDateShort(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function setDateRangeLabel(elId, entries){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  if(!entries || entries.length < 2){ el.innerHTML = ''; return; }
+  el.innerHTML = '<span>' + formatDateShort(entries[0].timestamp) + '</span><span>' + formatDateShort(entries[entries.length-1].timestamp) + '</span>';
+}
+
 function renderTrend(recipeId, alvo, tol){
   const entries = historyForRecipe(recipeId, 10);
   const svg = buildGlueTrendSVG(entries, alvo, tol);
   const wrap = document.getElementById('trendWrap');
-  if(!svg){ wrap.style.display='none'; document.getElementById('trendChart').innerHTML=''; return; }
+  if(!svg){ wrap.style.display='none'; document.getElementById('trendChart').innerHTML=''; setDateRangeLabel('trendDates', null); return; }
   wrap.style.display = 'block';
   document.getElementById('trendChart').innerHTML = svg;
+  setDateRangeLabel('trendDates', entries);
 }
 
 function renderPaperTrend(recipeId){
   const entries = historyForRecipe(recipeId, 10);
   const svg = buildPaperTrendSVG(entries);
   const wrap = document.getElementById('paperTrendWrap');
-  if(!svg){ wrap.style.display='none'; document.getElementById('paperTrendChart').innerHTML=''; return; }
+  if(!svg){ wrap.style.display='none'; document.getElementById('paperTrendChart').innerHTML=''; setDateRangeLabel('paperTrendDates', null); return; }
   wrap.style.display = 'block';
   document.getElementById('paperTrendChart').innerHTML = svg;
+  setDateRangeLabel('paperTrendDates', entries);
 }
 
 /* ---------- tendência na aba histórico (sem precisar pesar de novo) ---------- */
@@ -601,6 +631,8 @@ function renderHistTrendCharts(){
   const emptyMsg = document.getElementById('histTrendEmpty');
   if(!recipe){
     glueWrap.style.display='none'; paperWrap.style.display='none';
+    setDateRangeLabel('histTrendDates', null);
+    setDateRangeLabel('histPaperTrendDates', null);
     emptyMsg.style.display='block';
     emptyMsg.textContent = 'Cadastre uma receita para ver a tendência.';
     return;
@@ -610,10 +642,12 @@ function renderHistTrendCharts(){
   const paperSvg = buildPaperTrendSVG(entries);
 
   glueWrap.style.display = glueSvg ? 'block' : 'none';
-  if(glueSvg) document.getElementById('histTrendChart').innerHTML = glueSvg;
+  if(glueSvg){ document.getElementById('histTrendChart').innerHTML = glueSvg; setDateRangeLabel('histTrendDates', entries); }
+  else setDateRangeLabel('histTrendDates', null);
 
   paperWrap.style.display = paperSvg ? 'block' : 'none';
-  if(paperSvg) document.getElementById('histPaperTrendChart').innerHTML = paperSvg;
+  if(paperSvg){ document.getElementById('histPaperTrendChart').innerHTML = paperSvg; setDateRangeLabel('histPaperTrendDates', entries); }
+  else setDateRangeLabel('histPaperTrendDates', null);
 
   if(!glueSvg && !paperSvg){
     emptyMsg.style.display = 'block';
